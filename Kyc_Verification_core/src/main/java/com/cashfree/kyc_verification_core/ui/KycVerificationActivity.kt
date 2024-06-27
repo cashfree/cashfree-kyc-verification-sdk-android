@@ -1,31 +1,124 @@
 package com.cashfree.kyc_verification_core.ui
 
+import android.Manifest
+import android.app.Activity
+import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
-import androidx.appcompat.app.AppCompatActivity
+import android.net.Uri
 import android.os.Bundle
+import android.provider.MediaStore
 import android.view.View
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
+import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import androidx.core.view.isVisible
-import com.cashfree.kyc_verification_core.R
+import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import com.cashfree.kyc_verification_core.databinding.ActivityKycVerificationBinding
+import com.cashfree.kyc_verification_core.models.CFErrorResponse
+import com.cashfree.kyc_verification_core.models.CFVerificationResponse
+import com.cashfree.kyc_verification_core.utils.CFCallbackUtil
+import com.cashfree.kyc_verification_core.utils.CfUtils
+import com.cashfree.kyc_verification_core.utils.Constants
+import com.cashfree.kyc_verification_core.utils.Constants.WB_INTENT_BRIDGE
+import com.cashfree.subscription.coresdk.payment.WebHelperInterface
+import com.cashfree.subscription.coresdk.payment.WebJSInterfaceImpl
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationServices
+
+import org.json.JSONObject
 
 internal class KycVerificationActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityKycVerificationBinding
+    private var exitDialog: AlertDialog? = null
+    private lateinit var filePickerLauncher: ActivityResultLauncher<Intent>
+    private lateinit var cameraLauncher: ActivityResultLauncher<Intent>
+    private var fieldName = ""
+    private lateinit var fusedLocationClient: FusedLocationProviderClient
+
+    companion object {
+        const val REQUEST_CAMERA = 1
+        const val LOCATION_PERMISSION_REQUEST_CODE = 2
+    }
+
+    private val webJsBridge: WebJSInterfaceImpl by lazy {
+        WebJSInterfaceImpl(addWebHelperInterfaceImplementation())
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityKycVerificationBinding.inflate(layoutInflater)
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
         setContentView(binding.root)
         handleLoader(true)
+        handleClick()
+        registerFilePickerLauncher()
+        registerCameraLauncher()
         setWebView()
         loadUrl()
+        addBackPressDispatcher()
+    }
+
+    private fun registerCameraLauncher() {
+        cameraLauncher = registerForActivityResult(
+            ActivityResultContracts.StartActivityForResult()
+        ) { result ->
+            if (result.resultCode == Activity.RESULT_OK && result.data != null) {
+                val extras = result.data!!.extras
+                val imageBitmap = extras?.get("data") as Bitmap
+                val base64String = CfUtils.bitmapToBase64(imageBitmap)
+                callOnFileSelectedFunction(base64String)
+            }
+        }
+    }
+
+
+    private fun registerFilePickerLauncher() {
+        filePickerLauncher =
+            registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+                if (result.resultCode == RESULT_OK) {
+                    val selectedFileUri: Uri? = result.data?.data
+                    if (selectedFileUri != null) {
+                        val base64String =
+                            CfUtils.getBase64FromUri(selectedFileUri, contentResolver)
+                        callOnFileSelectedFunction(base64String)
+                    }
+                }
+            }
+    }
+
+    private fun callOnFileSelectedFunction(base64String: String) {
+        Toast.makeText(this, base64String, Toast.LENGTH_LONG).show()
+        binding.kycWebView.evaluateJavascript(
+            "onFileSelected('$base64String','$fieldName')",
+            null
+        )
+    }
+
+
+    private fun handleClick() {
+        binding.toolbarTitle.setOnClickListener {
+            //handleVerificationResponse(CFVerificationResponse("123", "Success"))
+            getGeoLocation()
+        }
     }
 
     private fun loadUrl() {
-        binding.kycWebView.loadUrl("https://forms-test.cashfree.com/verification/F6m5d0rv5s20")
+        intent.extras?.let { bundle ->
+            bundle.getString(Constants.FORM_URL)?.let { url ->
+                binding.kycWebView.loadUrl(url)
+            }
+        }
+
     }
 
     private fun handleLoader(isVisible: Boolean) {
@@ -33,7 +126,14 @@ internal class KycVerificationActivity : AppCompatActivity() {
     }
 
     private fun setWebView() {
-        binding.kycWebView.settings.javaScriptEnabled=true
+        with(binding.kycWebView) {
+            settings.apply {
+                javaScriptEnabled = true
+                mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
+                cacheMode = WebSettings.LOAD_NO_CACHE
+            }
+            addJavascriptInterface(webJsBridge, WB_INTENT_BRIDGE)
+        }
         setWebViewClient()
     }
 
@@ -57,5 +157,152 @@ internal class KycVerificationActivity : AppCompatActivity() {
         }
     }
 
+    private fun addWebHelperInterfaceImplementation(): WebHelperInterface {
+        return object : WebHelperInterface {
 
+
+            override fun onVerificationResponse(jsonObject: JSONObject) {
+                handleVerificationResponse(CfUtils.getVerificationSuccessResponse(jsonObject))
+            }
+
+            override fun openFilePicker(fieldName: String) {
+                this@KycVerificationActivity.fieldName = fieldName
+                openFilePicker()
+            }
+
+            override fun openCamera(fieldName: String) {
+                this@KycVerificationActivity.fieldName = fieldName
+                openCamera()
+            }
+
+            override fun onGetGeoLocation() {
+                getGeoLocation()
+            }
+        }
+    }
+
+    private fun openCamera() {
+        if (ContextCompat.checkSelfPermission(
+                this@KycVerificationActivity,
+                Manifest.permission.CAMERA
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            ActivityCompat.requestPermissions(
+                this@KycVerificationActivity,
+                arrayOf(Manifest.permission.CAMERA),
+                REQUEST_CAMERA
+            )
+        } else {
+            dispatchTakePictureIntent()
+        }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == REQUEST_CAMERA) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                dispatchTakePictureIntent()
+            } else {
+                Toast.makeText(this, "Camera permission is required", Toast.LENGTH_SHORT).show()
+            }
+        }
+        if (requestCode == LOCATION_PERMISSION_REQUEST_CODE) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                fetchGeoLocation()
+            } else {
+                Toast.makeText(this, "Location permission is required", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun dispatchTakePictureIntent() {
+        val takePictureIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+        if (takePictureIntent.resolveActivity(packageManager) != null) {
+            cameraLauncher.launch(takePictureIntent)
+        }
+    }
+
+    private fun openFilePicker() {
+        val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
+            type = "image/*"
+            putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("image/png", "image/jpg", "image/jpeg"))
+        }
+        filePickerLauncher.launch(intent)
+    }
+
+    private fun handleVerificationResponse(response: CFVerificationResponse) {
+        finish()
+        CFCallbackUtil.sendVerificationResponse(response)
+    }
+
+    private fun handleCancelled(error: CFErrorResponse) {
+        finish()
+        CFCallbackUtil.sendOnCancelled(error)
+    }
+
+    private fun addBackPressDispatcher() {
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                exitDialog = CFExitDialog(this@KycVerificationActivity) {
+                    handleCancelled(CFErrorResponse("Error", "Verification Cancelled", "400"))
+                }
+                if (!isFinishing && !isDestroyed) {
+                    exitDialog?.show()
+                }
+            }
+        })
+    }
+
+  fun getGeoLocation() {
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
+                LOCATION_PERMISSION_REQUEST_CODE
+            )
+            return
+        }
+
+        fetchGeoLocation()
+    }
+
+    private fun fetchGeoLocation() {
+        if (ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            return
+        }
+        fusedLocationClient.lastLocation
+            .addOnSuccessListener { location ->
+                location?.let {
+                    val latitude = location.latitude
+                    val longitude = location.longitude
+                    passGeoLocationToWeb(latitude, longitude)
+                }
+            }
+            .addOnFailureListener { exception ->
+                // Handle failure to fetch location
+            }
+    }
+
+    private fun passGeoLocationToWeb(latitude: Double, longitude: Double) {
+
+        binding.kycWebView.evaluateJavascript(
+            "setGeoLocation($latitude, $longitude)",
+            null
+        )
+    }
 }

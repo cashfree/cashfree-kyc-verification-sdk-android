@@ -1,41 +1,105 @@
 package com.cashfree.kyc_verification_core.services
 
+import android.app.Application
+import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import com.cashfree.kyc_verification_core.ui.KycVerificationActivity
 import com.cashfree.kyc_verification_core.utils.Constants
+import com.cashfree.pg.base.exception.CFException
+import com.cashfree.subscription.coresdk.channel.CFCallbackEventBus
+import com.cashfree.subscription.coresdk.channel.CFVerificationCallback
 import java.lang.ref.WeakReference
+import java.util.concurrent.Executors
 
 
 internal interface IVerificationService {
-    fun doVerification(context: Context, formId: String)
+    fun doVerification()
+    fun setCheckoutCallback(cfVerificationCallback: CFVerificationCallback)
 }
 
 
-object CFKycVerificationService : IVerificationService {
+class CFKycVerificationService private constructor(
+    private val context: Context,
+    private val url: String
+) : IVerificationService {
 
-    private var context: WeakReference<Context>? = null
+    private var contextRef: WeakReference<Context>? = null
 
-    override fun doVerification(context: Context, formId: String) {
-        this.context = WeakReference<Context>(context)
-        startVerification(formId)
+    init {
+        CFCallbackEventBus.initialize(Executors.newSingleThreadExecutor())
+        this.contextRef = WeakReference(context)
     }
 
-    private fun startVerification(formId: String) {
-        context.let {
+    @Throws(CFException::class)
+    override fun doVerification() {
+        this.contextRef = WeakReference<Context>(context)
+        startVerification()
+    }
+
+    override fun setCheckoutCallback(cfVerificationCallback: CFVerificationCallback) {
+        CFCallbackEventBus.getInstance()?.setCheckoutCallback(cfVerificationCallback)
+    }
+
+    private fun startVerification() {
+        contextRef.let {
             it?.get()?.let { context ->
                 Intent(context, KycVerificationActivity::class.java).apply {
-                    putExtras(getVerificationBundle(formId))
+                    putExtras(getVerificationBundle())
                     context.startActivity(this)
                 }
             }
         }
     }
 
-    private fun getVerificationBundle(formId: String): Bundle {
+    private fun getVerificationBundle(): Bundle {
         return Bundle().apply {
-            putString(Constants.FORM_ID, formId)
+            putString(Constants.FORM_URL, url)
+        }
+    }
+
+    companion object {
+        @Volatile
+        private var INSTANCE: CFKycVerificationService? = null
+
+        @Throws(CFException::class)
+        fun initialize(context: Context, url: String): CFKycVerificationService {
+            if (context is Service || context is Application) {
+                throw CFException("Calling context must be activity or fragment")
+            }
+
+            if (url.isEmpty()) {
+                throw CFException("URL must be provided")
+            }
+
+            return INSTANCE ?: synchronized(this) {
+                INSTANCE ?: CFKycVerificationService(context, url).also { INSTANCE = it }
+            }
+        }
+
+        @Throws(CFException::class)
+        fun getInstance(): CFKycVerificationService {
+            return INSTANCE ?: throw CFException("CFKycVerificationService is not initialized")
+        }
+    }
+
+    class Builder {
+        private lateinit var context: Context
+        private var url: String = ""
+
+        fun setContext(context: Context) = apply { this.context = context }
+        fun setUrl(url: String) = apply { this.url = url }
+
+        @Throws(IllegalArgumentException::class, CFException::class)
+        fun build(): CFKycVerificationService {
+            if (!::context.isInitialized) {
+                throw IllegalArgumentException("Context must be provided")
+            }
+            if (url.isEmpty()) {
+                throw IllegalArgumentException("URL must be provided")
+            }
+            return initialize(context, url)
         }
     }
 

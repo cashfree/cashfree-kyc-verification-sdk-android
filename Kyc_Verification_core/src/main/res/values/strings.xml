@@ -1,3 +1,7 @@
 <resources>
     <string name="verify_kyc">Verify KYC</string>
+    <string name="cf_exiting_verification">Exiting Verification</string>
+    <string name="cf_are_you_sure_you_want_to_exit_verification">Are you sure you want to exit kyc verification page?</string>
+    <string name="cf_cta_yes">Yes</string>
+    <string name="cf_cta_no">No</string>
 </resources>
