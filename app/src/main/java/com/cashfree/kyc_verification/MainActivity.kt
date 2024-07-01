@@ -1,8 +1,10 @@
 package com.cashfree.kyc_verification
 
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.cashfree.kyc_verification.databinding.ActivityMainBinding
 import com.cashfree.kyc_verification_core.models.CFErrorResponse
@@ -27,7 +29,7 @@ class MainActivity : AppCompatActivity() {
         try {
             verificationService = CFKycVerificationService.Builder()
                 .setContext(this)
-                .setUrl("https://www.google.com/")
+                .setUrl("http://192.168.82.86:3000/verification/test")
                 .build()
         } catch (e: Exception) {
             Toast.makeText(this, "error: ${e?.message}", Toast.LENGTH_SHORT).show()
@@ -52,15 +54,34 @@ class MainActivity : AppCompatActivity() {
     private fun addVerificationCall() {
         verificationService.setCheckoutCallback(object : CFVerificationCallback {
             override fun onVerificationResponse(response: CFVerificationResponse) {
+                handleVerificationResposne(response)
 
-                Toast.makeText(baseContext, "status -> ${response.status}", Toast.LENGTH_LONG)
-                    .show()
             }
 
             override fun onVerificationCancelled(error: CFErrorResponse) {
-                Toast.makeText(baseContext, "Error -> ${error.message}", Toast.LENGTH_LONG).show()
+                showAlert("Verification Cancelled","Verification Cancelled by the user")
             }
 
         })
+    }
+
+    private fun handleVerificationResposne(response: CFVerificationResponse) {
+        if (response.status == "SUCCESS") {
+            // Redirect to SuccessActivity
+            val intent = Intent(this@MainActivity, SuccessActivity::class.java)
+            startActivity(intent)
+        } else {
+            // Show failure dialog
+            showAlert("Verification Failed","Verification failed. Please try again.")
+
+        }
+    }
+
+    private fun showAlert(title: String, message: String) {
+        AlertDialog.Builder(this@MainActivity)
+            .setTitle(title)
+            .setMessage(message)
+            .setPositiveButton(android.R.string.ok, null)
+            .show()
     }
 }

@@ -2,7 +2,7 @@ package com.cashfree.kyc_verification_core.models
 
 data class CFVerificationResponse(
     val status: String,
-    val formInt: String
+    val form_id: String
 )
 
 data class CFErrorResponse(

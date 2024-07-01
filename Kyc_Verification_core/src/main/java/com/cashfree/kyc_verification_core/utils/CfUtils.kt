@@ -17,8 +17,9 @@ internal class CfUtils {
 
         fun getVerificationSuccessResponse(jsonObject: JSONObject): CFVerificationResponse {
             return CFVerificationResponse(
+                jsonObject.getString(Constants.STATUS),
                 jsonObject.getString(Constants.FORM_ID),
-                jsonObject.getString(Constants.STATUS)
+
             )
         }
 

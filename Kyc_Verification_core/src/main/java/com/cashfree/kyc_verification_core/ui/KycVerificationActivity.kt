@@ -60,7 +60,6 @@ internal class KycVerificationActivity : AppCompatActivity() {
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
         setContentView(binding.root)
         handleLoader(true)
-        handleClick()
         registerFilePickerLauncher()
         registerCameraLauncher()
         setWebView()
@@ -76,7 +75,10 @@ internal class KycVerificationActivity : AppCompatActivity() {
                 val extras = result.data!!.extras
                 val imageBitmap = extras?.get("data") as Bitmap
                 val base64String = CfUtils.bitmapToBase64(imageBitmap)
-                callOnFileSelectedFunction(base64String)
+                runOnUiThread {
+                    callOnFileSelectedFunction(base64String)
+                }
+
             }
         }
     }
@@ -90,25 +92,25 @@ internal class KycVerificationActivity : AppCompatActivity() {
                     if (selectedFileUri != null) {
                         val base64String =
                             CfUtils.getBase64FromUri(selectedFileUri, contentResolver)
-                        callOnFileSelectedFunction(base64String)
+                        runOnUiThread {
+                            callOnFileSelectedFunction(base64String)
+                        }
                     }
                 }
             }
     }
 
     private fun callOnFileSelectedFunction(base64String: String) {
-        Toast.makeText(this, base64String, Toast.LENGTH_LONG).show()
-        binding.kycWebView.evaluateJavascript(
-            "onFileSelected('$base64String','$fieldName')",
-            null
-        )
-    }
+        try {
+            binding.kycWebView.post {
+                binding.kycWebView.evaluateJavascript(
+                    "onFileSelected('$base64String','$fieldName')",
+                    null
+                )
+            }
 
-
-    private fun handleClick() {
-        binding.toolbarTitle.setOnClickListener {
-            //handleVerificationResponse(CFVerificationResponse("123", "Success"))
-            getGeoLocation()
+        }catch (e:Exception){
+            e.printStackTrace()
         }
     }
 

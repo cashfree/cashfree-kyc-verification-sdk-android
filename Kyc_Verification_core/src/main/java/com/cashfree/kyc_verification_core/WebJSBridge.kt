@@ -2,6 +2,7 @@ package com.cashfree.subscription.coresdk.payment
 
 import android.content.pm.ApplicationInfo
 import android.content.pm.ResolveInfo
+import android.util.Log
 import android.webkit.JavascriptInterface
 import com.cashfree.pg.base.logger.CFLoggerService
 import org.json.JSONArray
@@ -19,6 +20,7 @@ internal class WebJSInterfaceImpl(private var callback: WebHelperInterface?) {
 
     @JavascriptInterface
     fun verificationResponse(result: String) {
+        Log.d("testResult", result)
         callback?.onVerificationResponse(JSONObject(result))
     }
 
