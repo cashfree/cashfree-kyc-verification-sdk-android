@@ -12,7 +12,7 @@ import java.util.concurrent.ExecutorService
 
 interface CFVerificationCallback {
     fun onVerificationResponse(response: CFVerificationResponse)
-    fun onVerificationCancelled(error: CFErrorResponse)
+    fun onErrorResponse(error: CFErrorResponse)
 }
 
 internal class CFCallbackEventBus private constructor(
@@ -59,12 +59,12 @@ internal class CFCallbackEventBus private constructor(
                     }
                 }
             }
-            CFCallbackEvents.Cancelled -> {
+            CFCallbackEvents.Error -> {
                 cfVerificationCallback?.let {
                     it.let { callback ->
                         CoroutineScope(Dispatchers.Main).launch {
                             event.error?.let { error ->
-                                callback.onVerificationCancelled(error)
+                                callback.onErrorResponse(error)
                             }
                         }
                     }

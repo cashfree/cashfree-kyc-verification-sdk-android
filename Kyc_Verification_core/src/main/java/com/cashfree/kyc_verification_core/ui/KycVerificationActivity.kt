@@ -109,7 +109,7 @@ internal class KycVerificationActivity : AppCompatActivity() {
                 )
             }
 
-        }catch (e:Exception){
+        } catch (e: Exception) {
             e.printStackTrace()
         }
     }
@@ -167,6 +167,10 @@ internal class KycVerificationActivity : AppCompatActivity() {
                 handleVerificationResponse(CfUtils.getVerificationSuccessResponse(jsonObject))
             }
 
+            override fun webErrors(jsonObject: JSONObject) {
+                handleErrorResponse(CfUtils.getErrorResponse(jsonObject))
+            }
+
             override fun openFilePicker(fieldName: String) {
                 this@KycVerificationActivity.fieldName = fieldName
                 openFilePicker()
@@ -181,6 +185,10 @@ internal class KycVerificationActivity : AppCompatActivity() {
                 getGeoLocation()
             }
         }
+    }
+
+    private fun handleErrorResponse(errorResponse: CFErrorResponse) {
+        CFCallbackUtil.sendErrorResponse(errorResponse)
     }
 
     private fun openCamera() {
@@ -241,16 +249,12 @@ internal class KycVerificationActivity : AppCompatActivity() {
         CFCallbackUtil.sendVerificationResponse(response)
     }
 
-    private fun handleCancelled(error: CFErrorResponse) {
-        finish()
-        CFCallbackUtil.sendOnCancelled(error)
-    }
-
     private fun addBackPressDispatcher() {
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 exitDialog = CFExitDialog(this@KycVerificationActivity) {
-                    handleCancelled(CFErrorResponse("Error", "Verification Cancelled", "400"))
+                    finish()
+                    handleErrorResponse(CfUtils.getCancellationResponse())
                 }
                 if (!isFinishing && !isDestroyed) {
                     exitDialog?.show()
@@ -259,7 +263,7 @@ internal class KycVerificationActivity : AppCompatActivity() {
         })
     }
 
-  fun getGeoLocation() {
+    fun getGeoLocation() {
         if (ContextCompat.checkSelfPermission(
                 this,
                 Manifest.permission.ACCESS_FINE_LOCATION

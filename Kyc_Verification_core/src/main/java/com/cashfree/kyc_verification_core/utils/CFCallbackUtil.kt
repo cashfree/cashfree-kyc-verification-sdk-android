@@ -14,9 +14,9 @@ internal object CFCallbackUtil {
         )
     }
 
-    fun sendOnCancelled(error: CFErrorResponse) {
+    fun sendErrorResponse(error: CFErrorResponse) {
         CFCallbackEventBus.getInstance()?.publishEvent(
-            CFPaymentCallbackEvent(CFCallbackEvents.Cancelled, error = error)
+            CFPaymentCallbackEvent(CFCallbackEvents.Error, error = error)
         )
     }
 }

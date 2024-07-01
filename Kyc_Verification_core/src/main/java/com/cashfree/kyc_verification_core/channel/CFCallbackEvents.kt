@@ -6,7 +6,7 @@ import com.cashfree.kyc_verification_core.models.CFVerificationResponse
 
 internal sealed class CFCallbackEvents {
     object Verify : CFCallbackEvents()
-    object Cancelled : CFCallbackEvents()
+    object Error : CFCallbackEvents()
 }
 
 internal data class CFPaymentCallbackEvent(

@@ -54,25 +54,23 @@ class MainActivity : AppCompatActivity() {
     private fun addVerificationCall() {
         verificationService.setCheckoutCallback(object : CFVerificationCallback {
             override fun onVerificationResponse(response: CFVerificationResponse) {
-                handleVerificationResposne(response)
+                handleVerificationResponse(response)
 
             }
 
-            override fun onVerificationCancelled(error: CFErrorResponse) {
-                showAlert("Verification Cancelled","Verification Cancelled by the user")
+            override fun onErrorResponse(error: CFErrorResponse) {
+                showAlert("Verification Error", error.message)
             }
 
         })
     }
 
-    private fun handleVerificationResposne(response: CFVerificationResponse) {
+    private fun handleVerificationResponse(response: CFVerificationResponse) {
         if (response.status == "SUCCESS") {
-            // Redirect to SuccessActivity
             val intent = Intent(this@MainActivity, SuccessActivity::class.java)
             startActivity(intent)
         } else {
-            // Show failure dialog
-            showAlert("Verification Failed","Verification failed. Please try again.")
+            showAlert("Verification Failed", "Verification failed. Please try again.")
 
         }
     }

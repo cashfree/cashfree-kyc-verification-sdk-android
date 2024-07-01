@@ -6,7 +6,6 @@ data class CFVerificationResponse(
 )
 
 data class CFErrorResponse(
-    val status: String,
-    val message: String,
-    val code: String
+    val statusCode: Int?=null,
+    val message: String
 )

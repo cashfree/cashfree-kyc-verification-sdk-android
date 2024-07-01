@@ -5,6 +5,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri
 import android.util.Base64
+import com.cashfree.kyc_verification_core.models.CFErrorResponse
 import com.cashfree.kyc_verification_core.models.CFVerificationResponse
 
 import org.json.JSONObject
@@ -20,7 +21,16 @@ internal class CfUtils {
                 jsonObject.getString(Constants.STATUS),
                 jsonObject.getString(Constants.FORM_ID),
 
-            )
+                )
+        }
+
+        fun getErrorResponse(jsonObject: JSONObject): CFErrorResponse {
+            return CFErrorResponse(
+                jsonObject.getInt(Constants.STATUS_CODE),
+                jsonObject.getString(Constants.MESSAGE),
+
+
+                )
         }
 
         fun bitmapToBase64(imageBitmap: Bitmap): String {
@@ -46,6 +56,10 @@ internal class CfUtils {
 
             val bytes = byteArrayOutputStream.toByteArray()
             return Base64.encodeToString(bytes, Base64.NO_WRAP)
+        }
+
+        fun getCancellationResponse(): CFErrorResponse {
+            return CFErrorResponse(message = "User cancelled Verification")
         }
 
     }
