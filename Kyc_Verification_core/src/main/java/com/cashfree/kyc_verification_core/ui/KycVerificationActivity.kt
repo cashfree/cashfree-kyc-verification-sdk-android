@@ -8,6 +8,7 @@ import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Bundle
 import android.provider.MediaStore
+import android.util.Log
 import android.view.View
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
@@ -104,8 +105,7 @@ internal class KycVerificationActivity : AppCompatActivity() {
         try {
             binding.kycWebView.post {
                 binding.kycWebView.evaluateJavascript(
-                    "onFileSelected('$base64String','$fieldName')",
-                    null
+                    "onFileSelected('$base64String','$fieldName')", null
                 )
             }
 
@@ -151,8 +151,7 @@ internal class KycVerificationActivity : AppCompatActivity() {
             }
 
             override fun shouldInterceptRequest(
-                view: WebView?,
-                request: WebResourceRequest?
+                view: WebView?, request: WebResourceRequest?
             ): WebResourceResponse? {
                 return super.shouldInterceptRequest(view, request)
             }
@@ -167,8 +166,8 @@ internal class KycVerificationActivity : AppCompatActivity() {
                 handleVerificationResponse(CfUtils.getVerificationSuccessResponse(jsonObject))
             }
 
-            override fun webErrors(jsonObject: JSONObject) {
-                handleErrorResponse(CfUtils.getErrorResponse(jsonObject))
+            override fun onWebErrors(jsonObject: JSONObject) {
+                 handleErrorResponse(CfUtils.getErrorResponse(jsonObject))
             }
 
             override fun openFilePicker(fieldName: String) {
@@ -193,14 +192,11 @@ internal class KycVerificationActivity : AppCompatActivity() {
 
     private fun openCamera() {
         if (ContextCompat.checkSelfPermission(
-                this@KycVerificationActivity,
-                Manifest.permission.CAMERA
+                this@KycVerificationActivity, Manifest.permission.CAMERA
             ) != PackageManager.PERMISSION_GRANTED
         ) {
             ActivityCompat.requestPermissions(
-                this@KycVerificationActivity,
-                arrayOf(Manifest.permission.CAMERA),
-                REQUEST_CAMERA
+                this@KycVerificationActivity, arrayOf(Manifest.permission.CAMERA), REQUEST_CAMERA
             )
         } else {
             dispatchTakePictureIntent()
@@ -208,9 +204,7 @@ internal class KycVerificationActivity : AppCompatActivity() {
     }
 
     override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
+        requestCode: Int, permissions: Array<out String>, grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == REQUEST_CAMERA) {
@@ -252,21 +246,25 @@ internal class KycVerificationActivity : AppCompatActivity() {
     private fun addBackPressDispatcher() {
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                exitDialog = CFExitDialog(this@KycVerificationActivity) {
-                    finish()
-                    handleErrorResponse(CfUtils.getCancellationResponse())
+                if (binding.kycWebView.canGoBack()) {
+                    binding.kycWebView.goBack()
+                } else {
+                    exitDialog = CFExitDialog(this@KycVerificationActivity) {
+                        finish()
+                        handleErrorResponse(CfUtils.getCancellationResponse())
+                    }
+                    if (!isFinishing && !isDestroyed) {
+                        exitDialog?.show()
+                    }
                 }
-                if (!isFinishing && !isDestroyed) {
-                    exitDialog?.show()
-                }
+
             }
         })
     }
 
     fun getGeoLocation() {
         if (ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.ACCESS_FINE_LOCATION
+                this, Manifest.permission.ACCESS_FINE_LOCATION
             ) != PackageManager.PERMISSION_GRANTED
         ) {
             ActivityCompat.requestPermissions(
@@ -282,33 +280,33 @@ internal class KycVerificationActivity : AppCompatActivity() {
 
     private fun fetchGeoLocation() {
         if (ActivityCompat.checkSelfPermission(
-                this,
-                Manifest.permission.ACCESS_FINE_LOCATION
+                this, Manifest.permission.ACCESS_FINE_LOCATION
             ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
-                this,
-                Manifest.permission.ACCESS_COARSE_LOCATION
+                this, Manifest.permission.ACCESS_COARSE_LOCATION
             ) != PackageManager.PERMISSION_GRANTED
         ) {
             return
         }
-        fusedLocationClient.lastLocation
-            .addOnSuccessListener { location ->
-                location?.let {
-                    val latitude = location.latitude
-                    val longitude = location.longitude
-                    passGeoLocationToWeb(latitude, longitude)
-                }
+        fusedLocationClient.lastLocation.addOnSuccessListener { location ->
+            location?.let {
+                val latitude = location.latitude
+                val longitude = location.longitude
+                passGeoLocationToWeb(latitude, longitude)
             }
-            .addOnFailureListener { exception ->
-                // Handle failure to fetch location
-            }
+        }.addOnFailureListener { exception ->
+            // Handle failure to fetch location
+        }
     }
 
     private fun passGeoLocationToWeb(latitude: Double, longitude: Double) {
 
         binding.kycWebView.evaluateJavascript(
-            "setGeoLocation($latitude, $longitude)",
-            null
+            "setGeoLocation($latitude, $longitude)", null
         )
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        webJsBridge.clearCallback()
     }
 }

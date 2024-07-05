@@ -10,7 +10,7 @@ import org.json.JSONObject
 
 internal interface WebHelperInterface {
     fun onVerificationResponse(jsonObject: JSONObject)
-    fun webErrors(jsonObject: JSONObject)
+    fun onWebErrors(jsonObject: JSONObject)
     fun openFilePicker(fieldName: String)
     fun openCamera(fieldName: String)
     fun onGetGeoLocation()
@@ -26,7 +26,7 @@ internal class WebJSInterfaceImpl(private var callback: WebHelperInterface?) {
 
     @JavascriptInterface
     fun webErrors(error: String) {
-        callback?.webErrors(JSONObject(error))
+        callback?.onWebErrors(JSONObject(error))
     }
 
     @JavascriptInterface

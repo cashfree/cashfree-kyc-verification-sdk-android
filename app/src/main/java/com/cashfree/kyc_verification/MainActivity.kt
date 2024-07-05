@@ -29,7 +29,7 @@ class MainActivity : AppCompatActivity() {
         try {
             verificationService = CFKycVerificationService.Builder()
                 .setContext(this)
-                .setUrl("http://192.168.82.86:3000/verification/test")
+                .setUrl("http://192.168.100.152:4000/forms/123")
                 .build()
         } catch (e: Exception) {
             Toast.makeText(this, "error: ${e?.message}", Toast.LENGTH_SHORT).show()
