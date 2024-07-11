@@ -1,13 +1,11 @@
 package com.cashfree.kyc_verification_core.utils
 
 import android.content.ContentResolver
-import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri
 import android.util.Base64
 import com.cashfree.kyc_verification_core.models.CFErrorResponse
 import com.cashfree.kyc_verification_core.models.CFVerificationResponse
-
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
@@ -33,13 +31,36 @@ internal class CfUtils {
                 )
         }
 
-        fun bitmapToBase64(imageBitmap: Bitmap): String {
-            val byteArrayOutputStream = ByteArrayOutputStream()
-            imageBitmap.compress(Bitmap.CompressFormat.PNG, 100, byteArrayOutputStream)
-            val byteArray = byteArrayOutputStream.toByteArray()
-            return Base64.encodeToString(byteArray, Base64.DEFAULT)
-        }
+        fun bitmapToBase64(imageBitmap: Bitmap, maxSizeMB: Int = 5): String {
+            val maxSizeBytes = maxSizeMB * 1024 * 1024 // Convert MB to bytes
+            var byteArrayOutputStream: ByteArrayOutputStream
+            var byteArray: ByteArray
+            var startQuality = 0
+            var endQuality = 100
+            var bestQuality = 100
 
+            // Binary search for the best quality
+            while (startQuality <= endQuality) {
+                val midQuality = (startQuality + endQuality) / 2
+                byteArrayOutputStream = ByteArrayOutputStream()
+                imageBitmap.compress(Bitmap.CompressFormat.JPEG, midQuality, byteArrayOutputStream)
+                byteArray = byteArrayOutputStream.toByteArray()
+
+                if (byteArray.size <= maxSizeBytes) {
+                    bestQuality = midQuality
+                    startQuality = midQuality + 1
+                } else {
+                    endQuality = midQuality - 1
+                }
+            }
+
+            // Compress image using the best quality found
+            byteArrayOutputStream = ByteArrayOutputStream()
+            imageBitmap.compress(Bitmap.CompressFormat.JPEG, bestQuality, byteArrayOutputStream)
+            byteArray = byteArrayOutputStream.toByteArray()
+
+            return Base64.encodeToString(byteArray, Base64.NO_WRAP)
+        }
         fun getBase64FromUri(selectedFileUri: Uri, contentResolver: ContentResolver): String {
             val inputStream: InputStream? = contentResolver.openInputStream(selectedFileUri)
             val byteArrayOutputStream = ByteArrayOutputStream()
