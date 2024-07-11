@@ -1,10 +1,10 @@
 package com.cashfree.kyc_verification_core.utils
 
+import com.cashfree.kyc_verification_core.channel.CFCallbackEventBus
 import com.cashfree.kyc_verification_core.channel.CFCallbackEvents
 import com.cashfree.kyc_verification_core.channel.CFPaymentCallbackEvent
 import com.cashfree.kyc_verification_core.models.CFErrorResponse
 import com.cashfree.kyc_verification_core.models.CFVerificationResponse
-import com.cashfree.subscription.coresdk.channel.CFCallbackEventBus
 
 internal object CFCallbackUtil {
 

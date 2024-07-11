@@ -8,7 +8,6 @@ import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Bundle
 import android.provider.MediaStore
-import android.util.Log
 import android.view.View
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
@@ -23,6 +22,8 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.cashfree.kyc_verification_core.WebHelperInterface
+import com.cashfree.kyc_verification_core.WebJSInterfaceImpl
 import com.cashfree.kyc_verification_core.databinding.ActivityKycVerificationBinding
 import com.cashfree.kyc_verification_core.models.CFErrorResponse
 import com.cashfree.kyc_verification_core.models.CFVerificationResponse
@@ -30,14 +31,11 @@ import com.cashfree.kyc_verification_core.utils.CFCallbackUtil
 import com.cashfree.kyc_verification_core.utils.CfUtils
 import com.cashfree.kyc_verification_core.utils.Constants
 import com.cashfree.kyc_verification_core.utils.Constants.WB_INTENT_BRIDGE
-import com.cashfree.subscription.coresdk.payment.WebHelperInterface
-import com.cashfree.subscription.coresdk.payment.WebJSInterfaceImpl
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
-
 import org.json.JSONObject
 
-internal class KycVerificationActivity : AppCompatActivity() {
+class KycVerificationActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityKycVerificationBinding
     private var exitDialog: AlertDialog? = null
@@ -114,7 +112,7 @@ internal class KycVerificationActivity : AppCompatActivity() {
         }
     }
 
-    private fun loadUrl() {
+    internal fun loadUrl() {
         intent.extras?.let { bundle ->
             bundle.getString(Constants.FORM_URL)?.let { url ->
                 binding.kycWebView.loadUrl(url)
@@ -167,7 +165,7 @@ internal class KycVerificationActivity : AppCompatActivity() {
             }
 
             override fun onWebErrors(jsonObject: JSONObject) {
-                 handleErrorResponse(CfUtils.getErrorResponse(jsonObject))
+                handleErrorResponse(CfUtils.getErrorResponse(jsonObject))
             }
 
             override fun openFilePicker(fieldName: String) {

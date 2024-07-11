@@ -1,11 +1,6 @@
-package com.cashfree.subscription.coresdk.payment
+package com.cashfree.kyc_verification_core
 
-import android.content.pm.ApplicationInfo
-import android.content.pm.ResolveInfo
-import android.util.Log
 import android.webkit.JavascriptInterface
-import com.cashfree.pg.base.logger.CFLoggerService
-import org.json.JSONArray
 import org.json.JSONObject
 
 internal interface WebHelperInterface {
@@ -45,6 +40,7 @@ internal class WebJSInterfaceImpl(private var callback: WebHelperInterface?) {
     fun getGeoLocation() {
         callback?.onGetGeoLocation()
     }
+
     fun clearCallback() {
         callback = null
     }

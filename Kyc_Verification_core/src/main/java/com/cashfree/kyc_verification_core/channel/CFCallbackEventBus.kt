@@ -1,7 +1,5 @@
-package com.cashfree.subscription.coresdk.channel
+package com.cashfree.kyc_verification_core.channel
 
-import com.cashfree.kyc_verification_core.channel.CFCallbackEvents
-import com.cashfree.kyc_verification_core.channel.CFPaymentCallbackEvent
 import com.cashfree.kyc_verification_core.models.CFErrorResponse
 import com.cashfree.kyc_verification_core.models.CFVerificationResponse
 import com.cashfree.pg.base.CFEventBus
@@ -46,7 +44,7 @@ internal class CFCallbackEventBus private constructor(
         }
     }
 
-    private fun triggerCallback(event: CFPaymentCallbackEvent) {
+    internal fun triggerCallback(event: CFPaymentCallbackEvent) {
         when (event.eventId) {
             CFCallbackEvents.Verify -> {
                 cfVerificationCallback?.let {

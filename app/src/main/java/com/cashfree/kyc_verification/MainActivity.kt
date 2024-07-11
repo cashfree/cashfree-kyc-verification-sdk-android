@@ -7,10 +7,10 @@ import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.cashfree.kyc_verification.databinding.ActivityMainBinding
+import com.cashfree.kyc_verification_core.channel.CFVerificationCallback
 import com.cashfree.kyc_verification_core.models.CFErrorResponse
 import com.cashfree.kyc_verification_core.models.CFVerificationResponse
 import com.cashfree.kyc_verification_core.services.CFKycVerificationService
-import com.cashfree.subscription.coresdk.channel.CFVerificationCallback
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
@@ -29,7 +29,7 @@ class MainActivity : AppCompatActivity() {
         try {
             verificationService = CFKycVerificationService.Builder()
                 .setContext(this)
-                .setUrl("http://192.168.100.152:4000/forms/123")
+                .setUrl("https://forms-test.cashfree.com/verification/o70ovnpdnth0")
                 .build()
         } catch (e: Exception) {
             Toast.makeText(this, "error: ${e?.message}", Toast.LENGTH_SHORT).show()

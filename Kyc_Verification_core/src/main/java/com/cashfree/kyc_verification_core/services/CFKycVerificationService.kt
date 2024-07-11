@@ -5,11 +5,11 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import com.cashfree.kyc_verification_core.channel.CFCallbackEventBus
+import com.cashfree.kyc_verification_core.channel.CFVerificationCallback
 import com.cashfree.kyc_verification_core.ui.KycVerificationActivity
 import com.cashfree.kyc_verification_core.utils.Constants
 import com.cashfree.pg.base.exception.CFException
-import com.cashfree.subscription.coresdk.channel.CFCallbackEventBus
-import com.cashfree.subscription.coresdk.channel.CFVerificationCallback
 import java.lang.ref.WeakReference
 import java.util.concurrent.Executors
 
